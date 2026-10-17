@@ -1,0 +1,39 @@
+# Python
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# Project data and generated artifacts
+input_data/
+raw_data/
+output_data/
+/output/
+reports/*.csv
+reports/**/*.csv
+reports/**/exceptions*.csv
+logs/
+*.log
+local.db
+*.sqlite3
+*.db
+
+# Demo/fixtures
+!examples/synthetic/**
+!tests/fixtures/**
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/

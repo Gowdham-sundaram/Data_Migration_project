@@ -1,0 +1,19 @@
+{
+  "required_target_fields": ["customer_key", "first_name", "last_name", "signup_date", "age", "status"],
+  "mappings": [
+    {"source_field": "customer_id", "target_field": "customer_key", "required": true},
+    {"source_field": "first_name", "target_field": "first_name", "transform": "trim"},
+    {"source_field": "last_name", "target_field": "last_name", "transform": "trim"},
+    {"source_field": "signup_date", "target_field": "signup_date", "type_cast": "date"},
+    {"source_field": "age", "target_field": "age", "type_cast": "int"},
+    {"source_field": "status", "target_field": "status", "transform": "lower"}
+  ],
+  "rules": [
+    {"name": "unique_customer_key", "field": "customer_key", "required": true, "unique": true},
+    {"name": "first_name_required", "field": "first_name", "required": true, "data_type": "string"},
+    {"name": "last_name_required", "field": "last_name", "required": true, "data_type": "string"},
+    {"name": "valid_signup_date", "field": "signup_date", "required": true, "data_type": "date", "date_format": "%Y-%m-%d"},
+    {"name": "age_in_range", "field": "age", "required": true, "data_type": "integer", "min_value": 0, "max_value": 120},
+    {"name": "valid_status", "field": "status", "required": true, "allowed_values": ["active", "inactive"]}
+  ]
+}

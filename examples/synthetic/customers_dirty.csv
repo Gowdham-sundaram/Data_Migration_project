@@ -1,0 +1,8 @@
+customer_id,first_name,last_name,signup_date,age,status
+C001,Alice,Smith,2024-01-15,33,active
+C001,Alice,Smith,2024-01-15,33,active
+C002,Bob,,2024-02-22,45,active
+C003,,Jones,2024-99-01,forty,inactive
+C004,Dana,Lee,2024-04-10,,active
+C005,Emma,Brown,2024-05-11,29,
+C006,Finn,Green,2024-06-12,41,active

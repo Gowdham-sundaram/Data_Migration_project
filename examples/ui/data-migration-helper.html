@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Data Migration Helper — Data quality review</title>
+  <style>
+    :root {
+      --ink: #172d28;
+      --muted: #667871;
+      --line: #dfe8e2;
+      --paper: #ffffff;
+      --canvas: #f4f7f5;
+      --green: #176b52;
+      --green-dark: #10523f;
+      --green-soft: #e8f4ee;
+      --amber: #a96113;
+      --amber-soft: #fff3df;
+      --red: #a43d3d;
+      --red-soft: #fff0ef;
+      --shadow: 0 12px 32px rgba(27, 56, 45, .07);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .48; }
+    .topbar {
+      height: 72px; padding: 0 max(24px, calc((100vw - 1180px) / 2));
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--paper); border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; gap: 11px; align-items: center; font-weight: 750; letter-spacing: -.03em; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      color: white; background: var(--green); border-radius: 10px; font-size: 18px;
+    }
+    .brand-name { font-size: 19px; }
+    .brand-caption { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .02em; }
+    .local-badge {
+      padding: 8px 11px; display: inline-flex; align-items: center; gap: 7px;
+      color: var(--green-dark); background: var(--green-soft); border-radius: 99px;
+      font-size: 12px; font-weight: 650;
+    }
+    .local-dot { width: 7px; height: 7px; background: #29956d; border-radius: 50%; }
+    main { width: min(1180px, calc(100% - 40px)); margin: 38px auto 64px; }
+    .intro { margin-bottom: 28px; }
+    .eyebrow { color: var(--green); font-size: 11px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 8px 0 9px; font-size: clamp(27px, 4vw, 36px); letter-spacing: -.045em; line-height: 1.13; }
+    .intro p { max-width: 710px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
+    .guide { margin: 16px 0 24px; padding: 0 16px; background: white; border: 1px solid var(--line); border-radius: 10px; }
+    .guide summary { padding: 13px 0; color: var(--green-dark); cursor: pointer; font-size: 13px; font-weight: 700; }
+    .guide-content { padding: 0 0 15px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .guide-content ol { margin: 0 0 12px; padding-left: 21px; }
+    .guide-content li + li { margin-top: 5px; }
+    .guide-content p { margin: 8px 0 0; }
+    .steps { display: flex; align-items: center; margin: 0 0 25px; }
+    .step { display: flex; align-items: center; gap: 9px; color: #87958e; font-size: 13px; font-weight: 630; white-space: nowrap; }
+    .step-number { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid #cdd9d1; border-radius: 50%; font-size: 12px; }
+    .step.active { color: var(--green-dark); }
+    .step.active .step-number, .step.done .step-number { color: white; background: var(--green); border-color: var(--green); }
+    .step-line { width: 42px; height: 1px; margin: 0 10px; background: var(--line); }
+    .card { background: var(--paper); border: 1px solid var(--line); border-radius: 15px; box-shadow: var(--shadow); }
+    .upload-card { padding: 26px; }
+    .section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+    h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    .subcopy { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .privacy-note { display: inline-flex; align-items: center; gap: 6px; color: var(--green-dark); font-size: 12px; font-weight: 600; }
+    .dropzone {
+      margin-top: 21px; min-height: 165px; padding: 25px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      background: #fbfdfb; border: 1.5px dashed #a9c4b5; border-radius: 12px;
+      transition: background .15s, border-color .15s;
+    }
+    .dropzone.dragging { background: var(--green-soft); border-color: var(--green); }
+    .upload-icon { width: 39px; height: 39px; display: grid; place-items: center; margin-bottom: 10px; color: var(--green); background: var(--green-soft); border-radius: 12px; font-size: 20px; }
+    .drop-title { font-size: 14px; font-weight: 700; }
+    .drop-help { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .button {
+      min-height: 39px; padding: 0 15px; border: 1px solid transparent; border-radius: 8px;
+      font-size: 13px; font-weight: 680; transition: .15s ease;
+    }
+    .button-primary { color: white; background: var(--green); }
+    .button-primary:hover:not(:disabled) { background: var(--green-dark); }
+    .button-secondary { color: var(--ink); background: white; border-color: var(--line); }
+    .button-secondary:hover:not(:disabled) { background: #f6faf7; border-color: #b5c9bd; }
+    .dropzone .button { margin-top: 13px; }
+    .file-meta { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .notice { display: none; margin-top: 15px; padding: 11px 13px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+    .notice.visible { display: block; }
+    .notice.error { color: #8b3232; background: var(--red-soft); }
+    .notice.success { color: var(--green-dark); background: var(--green-soft); }
+    .workspace { display: none; margin-top: 24px; }
+    .workspace.visible { display: block; }
+    .workspace-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .workspace-actions span { color: var(--muted); font-size: 11px; }
+    .button-danger { color: #8b3232; background: white; border-color: #efd7d4; }
+    .button-danger:hover:not(:disabled) { background: var(--red-soft); border-color: #dba7a1; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-bottom: 17px; }
+    .metric { padding: 16px 17px; background: white; border: 1px solid var(--line); border-radius: 11px; }
+    .metric-label { color: var(--muted); font-size: 11px; font-weight: 650; }
+    .metric-value { margin-top: 7px; font-size: 25px; font-weight: 760; letter-spacing: -.04em; }
+    .metric-foot { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .workspace-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: 17px; align-items: start; }
+    .panel { min-width: 0; padding: 20px; }
+    .mapping-panel { margin-bottom: 17px; }
+    .panel-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .label-pill { padding: 5px 8px; color: #667871; background: #f1f5f2; border-radius: 99px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .table-wrap { max-width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 9px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { padding: 10px 11px; color: #63746c; background: #f7faf8; text-align: left; font-size: 10px; font-weight: 720; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+    td { padding: 10px 11px; border-top: 1px solid #edf1ee; vertical-align: top; }
+    .profile-table { min-width: 550px; }
+    .profile-table td:first-child { font-weight: 660; }
+    .type-select { min-width: 104px; padding: 6px 7px; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 11px; }
+    .map-table { min-width: 850px; }
+    .map-table td { vertical-align: middle; }
+    .map-table input, .map-table select, .derive-form input, .derive-form select { width: 100%; min-width: 105px; padding: 7px 8px; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 11px; }
+    .transform-options { display: flex; flex-wrap: wrap; gap: 5px; min-width: 245px; }
+    .transform-options input { min-width: 70px; flex: 1 1 82px; }
+    .derive-form { display: grid; grid-template-columns: repeat(4, minmax(115px, 1fr)) auto; gap: 8px; align-items: end; margin-top: 15px; }
+    .derive-form label { display: block; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .derive-form label input, .derive-form label select { margin-top: 5px; }
+    .derived-list { margin-top: 12px; }
+    .field-preview { max-width: 210px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    .small-button { min-height: 30px; padding: 0 9px; color: #8b3a3a; background: white; border: 1px solid #efd7d4; border-radius: 6px; font-size: 10px; font-weight: 700; }
+    .check-cell { text-align: center; }
+    input[type="checkbox"] { accent-color: var(--green); }
+    .low-text { color: var(--muted); }
+    .row-controls { margin-top: 13px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .hint-box { margin-top: 14px; padding: 11px 12px; color: #77551c; background: #fff8e9; border: 1px solid #f3e4c4; border-radius: 8px; font-size: 11px; line-height: 1.5; }
+    .review-tabs { display: flex; gap: 5px; padding: 4px; background: #f2f6f3; border-radius: 8px; }
+    .tab-button { padding: 7px 10px; color: var(--muted); background: transparent; border: 0; border-radius: 6px; font-size: 11px; font-weight: 700; }
+    .tab-button.active { color: var(--green-dark); background: white; box-shadow: 0 1px 3px #183b2c16; }
+    .rows-table { min-width: 480px; }
+    .rows-table td { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+    .status-good { color: #176448; background: #e7f5ed; }
+    .status-review { color: #925715; background: #fff2dc; }
+    .empty-state { padding: 25px 12px; color: var(--muted); text-align: center; font-size: 12px; }
+    .approve-card { margin-top: 17px; padding: 18px; background: #f8fbf9; border: 1px solid var(--line); border-radius: 10px; }
+    .approve-label { display: flex; align-items: flex-start; gap: 9px; color: #40534a; font-size: 12px; line-height: 1.5; }
+    .approve-label input { margin-top: 3px; }
+    .approve-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 13px; }
+    .approval-status { flex: 1 1 100%; color: var(--muted); font-size: 11px; }
+    .approval-status.approved { color: var(--green-dark); font-weight: 700; }
+    .footer-note { margin: 20px 2px 0; color: #7a8982; font-size: 11px; line-height: 1.55; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 1200px) {
+      .workspace-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 850px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .topbar { height: 62px; padding: 0 16px; }
+      .brand-caption { display: none; }
+      .brand-name { font-size: 14px; }
+      .local-badge { padding: 6px 8px; font-size: 10px; }
+      .local-badge { padding: 7px 9px; font-size: 10px; }
+      main { width: calc(100% - 28px); margin-top: 27px; }
+      .steps { justify-content: space-between; gap: 3px; }
+      .step { gap: 5px; font-size: 9px; }
+      .step-line { width: 9px; flex: 0 0 9px; margin: 0; }
+      .upload-card { padding: 18px; }
+      .section-heading { flex-direction: column; }
+      .panel { padding: 15px; }
+      .summary-grid { gap: 8px; }
+      .metric { padding: 13px; }
+      .metric-value { font-size: 22px; }
+      .approve-actions { align-items: flex-start; flex-direction: column; }
+      .derive-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="Data Migration Helper">
+      <div class="brand-mark" aria-hidden="true">D</div>
+      <div><span class="brand-name">Data Migration Helper</span><span class="brand-caption">Migration readiness workspace</span></div>
+    </div>
+    <div class="local-badge"><span class="local-dot" aria-hidden="true"></span>Runs locally in this browser</div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div class="eyebrow">Data preparation</div>
+      <h1>Get your data ready with confidence.</h1>
+      <p>Upload a CSV, review its quality, decide which checks matter, then separate ready-to-use records from records that need attention.</p>
+    </section>
+
+    <details class="guide">
+      <summary>How to use this review and understand the profile</summary>
+      <div class="guide-content">
+        <ol>
+          <li>Select a delimited text file with a header row, or load the clearly fictional sample. Your file stays in this browser tab.</li>
+          <li>Review discovered columns and profiling hints. These metrics help you spot patterns; they are not business rules.</li>
+          <li>Map each source field to a target column name. Names stay unchanged by default. Choose an explicit text, date, number, currency, or split operation where needed.</li>
+          <li>Optionally combine two source fields into a new target field. Then set required/type/allowed-value/unique checks against the target columns, based on approved customer requirements.</li>
+          <li>Inspect the transformed Ready and Needs review previews. Invalid conversions are flagged; rows are not silently deleted or deduplicated.</li>
+          <li>Confirm you reviewed the Ready preview, approve, then download its CSV. Any mapping, transform, or rule change clears approval. Resolve review rows from the separate local review download.</li>
+        </ol>
+        <p><strong>How useful are profiling and transformations?</strong> Profiling provides first-pass hints; explicit mapping operations produce a customer-defined output shape and checks can catch configured issues. Data Migration Helper does not understand business requirements or decide the correct mappings, allowed values, or formats for you. Have a data owner confirm these settings. A repeated value in one column is not necessarily a duplicate record, and this prototype does not replace a full schema-aware assessment.</p>
+      </div>
+    </details>
+
+    <nav class="steps" aria-label="Workflow progress">
+      <div class="step active" id="step-upload"><span class="step-number">1</span><span>Upload &amp; profile</span></div>
+      <div class="step-line" aria-hidden="true"></div>
+      <div class="step" id="step-map"><span class="step-number">2</span><span>Map &amp; transform</span></div>
+      <div class="step-line" aria-hidden="true"></div>
+      <div class="step" id="step-review"><span class="step-number">3</span><span>Review data</span></div>
+      <div class="step-line" aria-hidden="true"></div>
+      <div class="step" id="step-approve"><span class="step-number">4</span><span>Approve &amp; export</span></div>
+    </nav>
+
+    <section class="card upload-card" aria-labelledby="upload-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="upload-heading">Start with a data file</h2>
+          <p class="subcopy">Choose a comma-, tab-, semicolon-, or pipe-delimited text file. Your file is read on this device only.</p>
+        </div>
+        <div class="privacy-note"><span aria-hidden="true">▣</span>No cloud upload</div>
+      </div>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose or drop a CSV or delimited text file">
+        <div class="upload-icon" aria-hidden="true">↑</div>
+        <div class="drop-title">Drag and drop your file here</div>
+        <div class="drop-help">CSV or delimited text · up to 20 MB · first row must contain column names</div>
+        <button class="button button-primary" id="choose-file" type="button">Choose a file</button>
+        <input class="sr-only" id="file-input" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain">
+      </div>
+      <div class="file-meta" id="file-meta" aria-live="polite">No file selected. Try the synthetic sample to explore the workflow.</div>
+      <div class="row-controls">
+        <button class="button button-secondary" id="sample-button" type="button">Load synthetic sample</button>
+      </div>
+      <div class="notice" id="notice" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="workspace" id="workspace" aria-label="Profile and review">
+      <div class="workspace-actions">
+        <span>Clear uploaded data and review state from this browser tab.</span>
+        <button class="button button-danger" id="clear-data" type="button">Clear loaded data</button>
+      </div>
+      <div class="summary-grid" id="summary-grid"></div>
+      <section class="card panel mapping-panel" aria-labelledby="mapping-heading">
+        <div class="panel-title-row">
+          <div>
+            <h2 id="mapping-heading">Map &amp; transform fields</h2>
+            <p class="subcopy">Original column names are the defaults. Rename target fields or select an explicit transformation; failed conversions go to review.</p>
+          </div>
+          <span class="label-pill">RULE-BASED · LOCAL</span>
+        </div>
+        <div class="table-wrap">
+          <table class="map-table">
+            <thead><tr><th>Source column</th><th>Sample value</th><th>Target column name</th><th>Operation</th><th>Format / options</th></tr></thead>
+            <tbody id="mapping-body"></tbody>
+          </table>
+        </div>
+        <div class="derive-form" aria-label="Combine two source fields">
+          <label>First source field<select id="combine-first"></select></label>
+          <label>Second source field<select id="combine-second"></select></label>
+          <label>New target column<input id="combine-name" type="text" placeholder="e.g. full_name"></label>
+          <label>Join separator<input id="combine-separator" type="text" value=" " maxlength="10" aria-label="Separator between combined fields"></label>
+          <button class="button button-secondary" id="combine-add" type="button">Add combined field</button>
+        </div>
+        <div class="derived-list" id="derived-list"></div>
+        <div class="hint-box">Date conversion needs an explicit source format and desired output format. Number and currency conversion needs your decimal/group separators and output precision. Splitting uses an exact delimiter and creates two fields. Combining joins non-empty values only. Review preview values and confirm requirements before approval.</div>
+      </section>
+      <div class="workspace-grid">
+        <section class="card panel" aria-labelledby="profile-heading">
+          <div class="panel-title-row">
+            <div>
+              <h2 id="profile-heading">Profile &amp; define checks</h2>
+              <p class="subcopy">Review detected patterns. Choose required fields and types; Data Migration Helper will not guess business rules.</p>
+            </div>
+            <span class="label-pill" id="file-type-pill">LOCAL FILE</span>
+          </div>
+          <div class="table-wrap">
+            <table class="profile-table">
+              <thead>
+                <tr><th>Column</th><th>Detected</th><th>Blanks</th><th>Distinct</th><th>Required</th><th>Type check</th><th>Allowed values</th><th>Unique</th></tr>
+              </thead>
+              <tbody id="profile-body"></tbody>
+            </table>
+          </div>
+          <div class="hint-box">Detected types are suggestions. Profiling highlights patterns; it cannot know which values are correct for your business. Select only rules confirmed by your data specification.</div>
+          <div class="row-controls">
+            <button class="button button-secondary" id="recheck-button" type="button">Apply checks &amp; refresh review</button>
+          </div>
+        </section>
+
+        <section class="card panel" aria-labelledby="review-heading">
+          <div class="panel-title-row">
+            <div>
+              <h2 id="review-heading">Review the split</h2>
+              <p class="subcopy">Clean rows are safely trimmed. Rows that fail selected checks stay separate for review.</p>
+            </div>
+            <div class="review-tabs" role="tablist" aria-label="Preview record groups">
+              <button class="tab-button active" id="good-tab" role="tab" aria-selected="true" type="button">Ready <span id="good-tab-count">0</span></button>
+              <button class="tab-button" id="review-tab" role="tab" aria-selected="false" type="button">Needs review <span id="review-tab-count">0</span></button>
+            </div>
+          </div>
+          <div class="table-wrap" id="preview-wrap">
+            <table class="rows-table">
+              <thead id="preview-head"></thead>
+              <tbody id="preview-body"></tbody>
+            </table>
+          </div>
+          <div class="footer-note" id="preview-note"></div>
+
+          <div class="approve-card">
+            <label class="approve-label">
+              <input id="approval-checkbox" type="checkbox" disabled>
+              <span>I reviewed the ready-record preview and confirm these rows are suitable for export under the checks shown above.</span>
+            </label>
+            <div class="approve-actions">
+              <button class="button button-primary" id="approve-button" type="button" disabled>Approve ready data</button>
+              <button class="button button-secondary" id="download-good" type="button" disabled>Download approved CSV</button>
+              <button class="button button-secondary" id="download-review" type="button" disabled>Download review file</button>
+              <span class="approval-status" id="approval-status" aria-live="polite">Review the file and checks before approval.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="footer-note">Prototype notice: this standalone page only processes delimited text in your browser. It does not save approval records, call a server, or connect to any migration product. Use synthetic data for this demonstration.</p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+      const MAX_BYTES = 20 * 1024 * 1024;
+      const state = {
+        headers: [], rows: [], mappings: [], derived: [], rules: {}, outputHeaders: [], outputRows: [],
+        good: [], review: [], fileName: "", delimiter: ",", approved: false, checksConfigured: false
+      };
+      const elements = {
+        fileInput: document.getElementById("file-input"),
+        clearData: document.getElementById("clear-data"),
+        dropzone: document.getElementById("dropzone"),
+        chooseFile: document.getElementById("choose-file"),
+        sampleButton: document.getElementById("sample-button"),
+        fileMeta: document.getElementById("file-meta"),
+        notice: document.getElementById("notice"),
+        workspace: document.getElementById("workspace"),
+        summary: document.getElementById("summary-grid"),
+        mappingBody: document.getElementById("mapping-body"),
+        derivedList: document.getElementById("derived-list"),
+        combineFirst: document.getElementById("combine-first"),
+        combineSecond: document.getElementById("combine-second"),
+        combineName: document.getElementById("combine-name"),
+        combineSeparator: document.getElementById("combine-separator"),
+        profileBody: document.getElementById("profile-body"),
+        goodTab: document.getElementById("good-tab"),
+        reviewTab: document.getElementById("review-tab"),
+        goodTabCount: document.getElementById("good-tab-count"),
+        reviewTabCount: document.getElementById("review-tab-count"),
+        previewHead: document.getElementById("preview-head"),
+        previewBody: document.getElementById("preview-body"),
+        previewNote: document.getElementById("preview-note"),
+        approvalCheckbox: document.getElementById("approval-checkbox"),
+        approveButton: document.getElementById("approve-button"),
+        downloadGood: document.getElementById("download-good"),
+        downloadReview: document.getElementById("download-review"),
+        approvalStatus: document.getElementById("approval-status")
+      };
+
+      function showNotice(message, kind) {
+        elements.notice.textContent = message;
+        elements.notice.className = "notice visible " + kind;
+      }
+      function clearNotice() {
+        elements.notice.textContent = "";
+        elements.notice.className = "notice";
+      }
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, character => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[character]);
+      }
+      function parseDelimited(text) {
+        const candidates = [",", "\t", ";", "|"];
+        let best = null;
+        for (const delimiter of candidates) {
+          const rows = [];
+          let row = [];
+          let value = "";
+          let quoted = false;
+          for (let index = 0; index < text.length; index += 1) {
+            const character = text[index];
+            if (quoted) {
+              if (character === '"') {
+                if (text[index + 1] === '"') {
+                  value += '"';
+                  index += 1;
+                } else {
+                  quoted = false;
+                }
+              } else {
+                value += character;
+              }
+            } else if (character === '"' && value.length === 0) {
+              quoted = true;
+            } else if (character === delimiter) {
+              row.push(value);
+              value = "";
+            } else if (character === "\n" || character === "\r") {
+              if (character === "\r" && text[index + 1] === "\n") index += 1;
+              row.push(value);
+              value = "";
+              if (row.some(cell => cell.trim() !== "")) rows.push(row);
+              row = [];
+            } else {
+              value += character;
+            }
+          }
+          if (quoted) continue;
+          if (value.length || row.length) {
+            row.push(value);
+            if (row.some(cell => cell.trim() !== "")) rows.push(row);
+          }
+          if (rows.length < 1) continue;
+          const width = rows[0].length;
+          const consistent = rows.filter(parsedRow => parsedRow.length === width).length;
+          const score = width > 1 ? consistent * width : consistent * 0.1;
+          if (!best || score > best.score) best = { rows, delimiter, score };
+        }
+        if (!best) throw new Error("Could not parse this delimited file. Check its quotes and separators.");
+        if (best.rows.length < 2) throw new Error("The file needs a header row and at least one data row.");
+        const headerWidth = best.rows[0].length;
+        if (best.rows.some(row => row.length !== headerWidth)) {
+          throw new Error("Some rows have a different number of fields. The file was not changed; fix its structure and try again.");
+        }
+        const headers = best.rows[0].map((header, index) => {
+          const cleaned = header.replace(/^\uFEFF/, "").trim();
+          return cleaned || "column_" + (index + 1);
+        });
+        if (new Set(headers).size !== headers.length) {
+          throw new Error("Column names must be unique after trimming. Rename duplicate headers and try again.");
+        }
+        return {
+          headers,
+          rows: best.rows.slice(1).map(row => row.slice()),
+          delimiter: best.delimiter
+        };
+      }
+      function nonblank(value) {
+        return value !== null && value !== undefined && String(value).trim() !== "";
+      }
+      function isIsoDate(value) {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+        if (!match) return false;
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const date = new Date(0);
+        date.setUTCHours(0, 0, 0, 0);
+        date.setUTCFullYear(year, month - 1, day);
+        return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+      }
+      function typeOf(values) {
+        const present = values.filter(nonblank);
+        if (!present.length) return "empty";
+        const numeric = present.map(value => Number(value));
+        if (numeric.every(value => Number.isFinite(value))) return "number";
+        const dateLike = present.map(isIsoDate);
+        if (dateLike.every(Boolean)) return "date";
+        if (numeric.some(Number.isFinite) || dateLike.some(Boolean)) return "mixed";
+        return "text";
+      }
+      function profile(headers = state.headers, rows = state.rows) {
+        return headers.map((header, columnIndex) => {
+          const values = rows.map(row => row[columnIndex] ?? "");
+          const present = values.filter(nonblank);
+          const type = typeOf(values);
+          const numeric = present.map(Number).filter(Number.isFinite);
+          const distinct = new Set(present);
+          const counts = new Map();
+          present.forEach(value => counts.set(value, (counts.get(value) || 0) + 1));
+          const duplicateRows = present.filter(value => counts.get(value) > 1).length;
+          return {
+            header,
+            type,
+            blankCount: values.length - present.length,
+            distinctCount: distinct.size,
+            duplicateRows,
+            min: numeric.length && numeric.length === present.length ? numeric.reduce((min, value) => Math.min(min, value), Infinity) : null,
+            max: numeric.length && numeric.length === present.length ? numeric.reduce((max, value) => Math.max(max, value), -Infinity) : null
+          };
+        });
+      }
+      function mappingOptions() {
+        return `<option value="keep">Keep original value</option>
+          <option value="trim">Trim whitespace</option>
+          <option value="upper">Uppercase text</option>
+          <option value="lower">Lowercase text</option>
+          <option value="date">Format date</option>
+          <option value="number">Format number</option>
+          <option value="currency">Format price / currency</option>
+          <option value="split">Split into two fields</option>`;
+      }
+      function formatOptions(mapping, index) {
+        if (mapping.operation === "date") {
+          return `<input data-map-option="inputDateFormat" data-source="${index}" aria-label="Input date format" value="${escapeHtml(mapping.inputDateFormat)}" placeholder="Input: YYYY-MM-DD">
+            <input data-map-option="outputDateFormat" data-source="${index}" aria-label="Output date format" value="${escapeHtml(mapping.outputDateFormat)}" placeholder="Output: DD/MM/YYYY">`;
+        }
+        if (mapping.operation === "number" || mapping.operation === "currency") {
+          return `<input data-map-option="decimals" data-source="${index}" aria-label="Output decimal places" type="number" min="0" max="8" value="${mapping.decimals}">
+            <input data-map-option="decimalSeparator" data-source="${index}" aria-label="Output decimal separator" value="${escapeHtml(mapping.decimalSeparator)}" maxlength="1" placeholder="Decimal">
+            <input data-map-option="groupSeparator" data-source="${index}" aria-label="Output grouping separator" value="${escapeHtml(mapping.groupSeparator)}" maxlength="1" placeholder="Grouping">
+            ${mapping.operation === "currency" ? `<input data-map-option="prefix" data-source="${index}" aria-label="Currency prefix" value="${escapeHtml(mapping.prefix)}" placeholder="Prefix (e.g. $">
+              <input data-map-option="suffix" data-source="${index}" aria-label="Currency suffix" value="${escapeHtml(mapping.suffix)}" placeholder="Suffix (e.g. USD)">` : ""}`;
+        }
+        if (mapping.operation === "split") {
+          return `<input data-map-option="splitDelimiter" data-source="${index}" aria-label="Split delimiter" value="${escapeHtml(mapping.splitDelimiter)}" placeholder="Delimiter">
+            <input data-map-option="secondTargetName" data-source="${index}" aria-label="Second split target column name" value="${escapeHtml(mapping.secondTargetName)}" placeholder="Second target column">`;
+        }
+        return `<span class="field-preview">No value conversion</span>`;
+      }
+      function renderMappings() {
+        elements.mappingBody.innerHTML = state.mappings.map((mapping, index) => {
+          const sampleRow = state.rows.find(row => nonblank(row[index]));
+          const sample = sampleRow ? sampleRow[index] : "(blank)";
+          return `<tr>
+            <td><strong>${escapeHtml(state.headers[index])}</strong></td>
+            <td class="field-preview">${escapeHtml(sample ?? "(blank)")}</td>
+            <td><label class="sr-only" for="target-name-${index}">Target column for ${escapeHtml(state.headers[index])}</label>
+              <input id="target-name-${index}" data-map="targetName" data-source="${index}" data-previous-value="${escapeHtml(mapping.targetName)}" aria-label="Target column for ${escapeHtml(state.headers[index])}" value="${escapeHtml(mapping.targetName)}"></td>
+            <td><label class="sr-only" for="operation-${index}">Transformation for ${escapeHtml(state.headers[index])}</label>
+              <select id="operation-${index}" data-map="operation" data-source="${index}" aria-label="Transformation for ${escapeHtml(state.headers[index])}">${mappingOptions()}</select></td>
+            <td><div class="transform-options" data-options="${index}">${formatOptions(mapping, index)}</div></td>
+          </tr>`;
+        }).join("");
+        state.mappings.forEach((mapping, index) => {
+          const select = elements.mappingBody.querySelector(`[data-map="operation"][data-source="${index}"]`);
+          select.value = mapping.operation;
+        });
+        const sourceOptions = state.headers.map((header, index) => `<option value="${index}">${escapeHtml(header)}</option>`).join("");
+        elements.combineFirst.innerHTML = sourceOptions;
+        elements.combineSecond.innerHTML = sourceOptions;
+        if (state.headers.length > 1) elements.combineSecond.selectedIndex = 1;
+        renderDerived();
+      }
+      function renderDerived() {
+        if (!state.derived.length) {
+          elements.derivedList.innerHTML = "";
+          return;
+        }
+        elements.derivedList.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Combined target field</th><th>Sources</th><th>Separator</th><th></th></tr></thead><tbody>
+          ${state.derived.map((item, index) => `<tr><td>${escapeHtml(item.targetName)}</td><td>${escapeHtml(state.headers[item.first])} + ${escapeHtml(state.headers[item.second])}</td><td>${escapeHtml(item.separator)}</td><td><button class="small-button" type="button" data-remove-derived="${index}">Remove</button></td></tr>`).join("")}
+          </tbody></table></div>`;
+      }
+      function syncMappingsFromDom() {
+        elements.mappingBody.querySelectorAll("[data-map], [data-map-option]").forEach(control => {
+          const index = Number(control.dataset.source);
+          const mapping = state.mappings[index];
+          if (!mapping) return;
+          const key = control.dataset.map || control.dataset.mapOption;
+          if (key === "targetName") return;
+          if (key === "decimals") {
+            const decimals = Number(control.value);
+            mapping[key] = Number.isInteger(decimals) ? Math.min(8, Math.max(0, decimals)) : 2;
+            control.value = String(mapping[key]);
+          } else {
+            mapping[key] = control.value;
+          }
+        });
+      }
+      function parseDateWithFormat(value, format) {
+        const tokenPattern = /YYYY|MM|DD/g;
+        const tokens = format.match(tokenPattern) || [];
+        if (tokens.length !== 3 || new Set(tokens).size !== 3 || format.replace(tokenPattern, "").match(/[YMD]/)) {
+          throw new Error("invalid_date_format");
+        }
+        const expression = "^" + format.split(/(YYYY|MM|DD)/).map(part => {
+          if (part === "YYYY") return "(\\d{4})";
+          if (part === "MM" || part === "DD") return "(\\d{1,2})";
+          return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }).join("") + "$";
+        const match = new RegExp(expression).exec(value.trim());
+        if (!match) throw new Error("date_does_not_match_format");
+        const parts = format.split(/(YYYY|MM|DD)/);
+        const captures = match.slice(1);
+        const dateParts = {};
+        parts.forEach(part => {
+          if (["YYYY", "MM", "DD"].includes(part)) dateParts[part] = captures.shift();
+        });
+        const year = Number(dateParts.YYYY);
+        const month = Number(dateParts.MM);
+        const day = Number(dateParts.DD);
+        const date = new Date(0);
+        date.setUTCHours(0, 0, 0, 0);
+        date.setUTCFullYear(year, month - 1, day);
+        if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+          throw new Error("invalid_calendar_date");
+        }
+        return { YYYY: String(year).padStart(4, "0"), MM: String(month).padStart(2, "0"), DD: String(day).padStart(2, "0") };
+      }
+      function formatDateValue(value, inputFormat, outputFormat) {
+        const parts = parseDateWithFormat(value, inputFormat);
+        const outputTokens = outputFormat.match(/YYYY|MM|DD/g) || [];
+        if (!outputTokens.length || outputFormat.replace(/YYYY|MM|DD/g, "").match(/[YMD]/)) {
+          throw new Error("invalid_output_date_format");
+        }
+        return outputFormat.replace(/YYYY|MM|DD/g, token => parts[token]);
+      }
+      function formatNumericValue(value, mapping) {
+        let text = String(value).trim();
+        if (mapping.operation === "currency") {
+          if (mapping.prefix && text.startsWith(mapping.prefix)) text = text.slice(mapping.prefix.length).trim();
+          if (mapping.suffix && text.endsWith(mapping.suffix)) text = text.slice(0, -mapping.suffix.length).trim();
+        }
+        text = text.replace(/\p{Sc}/gu, "").replace(/\s/g, "");
+        if (mapping.groupSeparator) text = text.split(mapping.groupSeparator).join("");
+        if (mapping.decimalSeparator && mapping.decimalSeparator !== ".") {
+          if (text.includes(".") && text.includes(mapping.decimalSeparator)) throw new Error("ambiguous_number_separators");
+          text = text.replace(mapping.decimalSeparator, ".");
+        }
+        if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text)) throw new Error("invalid_number");
+        const number = Number(text);
+        if (!Number.isFinite(number)) throw new Error("invalid_number");
+        const decimals = mapping.decimals;
+        const fixed = Math.abs(number).toFixed(decimals);
+        let [integerPart, fractionPart] = fixed.split(".");
+        if (mapping.groupSeparator) integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, mapping.groupSeparator);
+        const magnitude = fractionPart ? `${integerPart}${mapping.decimalSeparator}${fractionPart}` : integerPart;
+        const signed = number < 0 ? `-${magnitude}` : magnitude;
+        return mapping.operation === "currency" ? `${mapping.prefix}${signed}${mapping.suffix}` : signed;
+      }
+      function isValidNumericOutput(value, header) {
+        if (Number.isFinite(Number(value))) return true;
+        const mapping = state.mappings.find(item => item.targetName.trim() === header && ["number", "currency"].includes(item.operation));
+        if (!mapping) return false;
+        try {
+          return formatNumericValue(value, mapping) === value;
+        } catch {
+          return false;
+        }
+      }
+      function transformSourceRow(sourceRow) {
+        const values = [];
+        const issues = [];
+        state.mappings.forEach((mapping, sourceIndex) => {
+          const original = sourceRow[sourceIndex] ?? "";
+          let value = original;
+          try {
+            if (mapping.operation === "trim") value = original.trim();
+            else if (mapping.operation === "upper") value = original.toLocaleUpperCase();
+            else if (mapping.operation === "lower") value = original.toLocaleLowerCase();
+            else if (mapping.operation === "date" && nonblank(original)) {
+              value = formatDateValue(original, mapping.inputDateFormat, mapping.outputDateFormat);
+            } else if ((mapping.operation === "number" || mapping.operation === "currency") && nonblank(original)) {
+              value = formatNumericValue(original, mapping);
+            } else if (mapping.operation === "split" && nonblank(original)) {
+              if (!mapping.splitDelimiter) throw new Error("empty_split_delimiter");
+              const splitValue = original.trim();
+              const splitAt = splitValue.indexOf(mapping.splitDelimiter);
+              if (splitAt < 0) throw new Error("split_delimiter_not_found");
+              values.push(splitValue.slice(0, splitAt).trim());
+              values.push(splitValue.slice(splitAt + mapping.splitDelimiter.length).trim());
+              return;
+            }
+          } catch (error) {
+            const category = error instanceof Error ? error.message : "transformation_failed";
+            issues.push(`${mapping.targetName}: ${category}`);
+            value = original;
+          }
+          values.push(value);
+          if (mapping.operation === "split") values.push("");
+        });
+        state.derived.forEach(item => {
+          const first = (sourceRow[item.first] ?? "").trim();
+          const second = (sourceRow[item.second] ?? "").trim();
+          values.push([first, second].filter(nonblank).join(item.separator));
+        });
+        return { values, issues };
+      }
+      function buildTransformedRows() {
+        const headers = [];
+        state.mappings.forEach(mapping => {
+          if (mapping.operation === "split" && !mapping.splitDelimiter) {
+            throw new Error(`Enter a split delimiter for ${mapping.targetName}.`);
+          }
+          if (mapping.operation === "date") {
+            const inputProbe = mapping.inputDateFormat.replace(/YYYY/g, "2000").replace(/MM/g, "01").replace(/DD/g, "02");
+            const outputProbe = mapping.outputDateFormat.replace(/YYYY/g, "2000").replace(/MM/g, "01").replace(/DD/g, "02");
+            try {
+              parseDateWithFormat(inputProbe, mapping.inputDateFormat);
+              parseDateWithFormat(outputProbe, mapping.outputDateFormat);
+            } catch {
+              throw new Error(`Enter valid input and output date formats containing YYYY, MM, and DD for ${mapping.targetName}.`);
+            }
+          }
+          if (["number", "currency"].includes(mapping.operation) &&
+              (!Number.isInteger(mapping.decimals) || mapping.decimals < 0 || mapping.decimals > 8 ||
+               mapping.decimalSeparator.length !== 1 ||
+               (mapping.groupSeparator && mapping.groupSeparator.length !== 1) ||
+               mapping.groupSeparator === mapping.decimalSeparator)) {
+            throw new Error(`Check the separators and decimal places for ${mapping.targetName}.`);
+          }
+          headers.push(mapping.targetName.trim());
+          if (mapping.operation === "split") {
+            if (!mapping.secondTargetName.trim()) throw new Error(`Enter a second target column name for ${mapping.targetName}.`);
+            headers.push(mapping.secondTargetName.trim());
+          }
+        });
+        state.derived.forEach(item => headers.push(item.targetName.trim()));
+        if (headers.some(header => !header)) throw new Error("Every output field needs a target column name.");
+        if (new Set(headers.map(header => header.toLocaleLowerCase())).size !== headers.length) {
+          throw new Error("Target column names must be unique, including split and combined fields.");
+        }
+        const transformed = state.rows.map(transformSourceRow);
+        return { headers, rows: transformed };
+      }
+      function renderSummary(profiles) {
+        const blanks = profiles.reduce((sum, column) => sum + column.blankCount, 0);
+        const duplicateValues = profiles.reduce((sum, column) => sum + column.duplicateRows, 0);
+        const counts = [
+          ["Records scanned", state.rows.length, state.headers.length + " columns detected"],
+          ["Fields detected", state.headers.length, "Header row inspected"],
+          ["Blank cells", blanks, "Null or empty values"],
+          ["Repeated values", duplicateValues, "Potential duplicates; not auto-removed"]
+        ];
+        elements.summary.innerHTML = counts.map(([label, value, foot]) =>
+          `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${value.toLocaleString()}</div><div class="metric-foot">${foot}</div></div>`
+        ).join("");
+      }
+      function renderProfile(profiles) {
+        elements.profileBody.innerHTML = profiles.map((column, index) => {
+          const savedRule = state.rules[column.header] || {};
+          const type = savedRule.type || (column.type === "mixed" || column.type === "empty" ? "none" : column.type);
+          return `<tr>
+            <td>${escapeHtml(column.header)}</td>
+            <td>${escapeHtml(column.type)}${column.min !== null ? `<div class="low-text">${column.min} to ${column.max}</div>` : ""}</td>
+            <td>${column.blankCount.toLocaleString()}</td>
+            <td>${column.distinctCount.toLocaleString()}${column.duplicateRows ? `<div class="low-text">${column.duplicateRows} repeated</div>` : ""}</td>
+            <td class="check-cell"><input type="checkbox" data-rule="required" data-column="${index}" aria-label="Require ${escapeHtml(column.header)}"${savedRule.required ? " checked" : ""}></td>
+            <td><label class="sr-only" for="type-${index}">Expected type for ${escapeHtml(column.header)}</label>
+              <select class="type-select" id="type-${index}" data-rule="type" data-column="${index}">
+                <option value="none"${type === "none" ? " selected" : ""}>No check</option>
+                <option value="text"${type === "text" ? " selected" : ""}>Text</option>
+                <option value="number"${type === "number" ? " selected" : ""}>Number</option>
+                <option value="date"${type === "date" ? " selected" : ""}>Date (YYYY-MM-DD)</option>
+              </select>
+            </td>
+            <td><label class="sr-only" for="allowed-${index}">Allowed values for ${escapeHtml(column.header)}</label>
+              <input class="type-select" id="allowed-${index}" data-rule="allowed" data-column="${index}" placeholder="e.g. active|inactive" aria-label="Allowed values for ${escapeHtml(column.header)}" value="${escapeHtml(savedRule.allowed || "")}">
+            </td>
+            <td class="check-cell"><input type="checkbox" data-rule="unique" data-column="${index}" aria-label="Require unique ${escapeHtml(column.header)}"${savedRule.unique ? " checked" : ""}></td>
+          </tr>`;
+        }).join("");
+      }
+      function currentRules() {
+        const rules = { ...state.rules };
+        Array.from(elements.profileBody.querySelectorAll("[data-rule]")).forEach(control => {
+          const index = Number(control.dataset.column);
+          const header = state.outputHeaders[index];
+          if (!header) return;
+          const rule = rules[header] || { required: false, unique: false, type: "none", allowed: "" };
+          if (control.dataset.rule === "required") rule.required = control.checked;
+          if (control.dataset.rule === "unique") rule.unique = control.checked;
+          if (control.dataset.rule === "type") rule.type = control.value;
+          if (control.dataset.rule === "allowed") rule.allowed = control.value;
+          rules[header] = rule;
+        });
+        state.rules = rules;
+        return rules;
+      }
+      function evaluateRows() {
+        currentRules();
+        let transformed;
+        try {
+          transformed = buildTransformedRows();
+        } catch (error) {
+          state.good = [];
+          state.review = [];
+          state.approved = false;
+          elements.approvalCheckbox.checked = false;
+          elements.approvalCheckbox.disabled = true;
+          elements.approveButton.disabled = true;
+          elements.downloadGood.disabled = true;
+          elements.downloadReview.disabled = true;
+          elements.approvalStatus.textContent = "Fix the mapping configuration before reviewing or approving.";
+          elements.approvalStatus.className = "approval-status";
+          elements.previewHead.innerHTML = "";
+          elements.previewBody.innerHTML = `<tr><td class="empty-state">${escapeHtml(error instanceof Error ? error.message : "The mapping configuration is invalid.")}</td></tr>`;
+          showNotice(error instanceof Error ? error.message : "The mapping configuration is invalid.", "error");
+          return;
+        }
+        state.outputHeaders = transformed.headers;
+        state.outputRows = transformed.rows;
+        if (elements.notice.classList.contains("error")) clearNotice();
+        const profiles = profile(state.outputHeaders, state.outputRows.map(record => record.values));
+        renderProfile(profiles);
+        const savedRules = currentRules();
+        const activeRules = Object.fromEntries(state.outputHeaders.map(header => [
+          header,
+          savedRules[header] || { required: false, unique: false, type: "none", allowed: "" }
+        ]));
+        state.checksConfigured = Object.values(activeRules).some(rule =>
+          rule.required || rule.unique || ["number", "date"].includes(rule.type) ||
+          (rule.allowed || "").split("|").some(item => item.trim())
+        );
+        const duplicateValues = state.outputHeaders.map(header => {
+          const rule = activeRules[header] || {};
+          if (!rule.unique) return new Set();
+          const counts = new Map();
+          state.outputRows.forEach(record => {
+            const columnIndex = state.outputHeaders.indexOf(header);
+            const value = String(record.values[columnIndex] ?? "").trim();
+            if (value) counts.set(value, (counts.get(value) || 0) + 1);
+          });
+          return new Set(Array.from(counts).filter(([, count]) => count > 1).map(([value]) => value));
+        });
+        state.good = [];
+        state.review = [];
+        state.outputRows.forEach((transformedRow, index) => {
+          const row = transformedRow.values;
+          const issues = transformedRow.issues.slice();
+          state.outputHeaders.forEach((header, columnIndex) => {
+            const rule = activeRules[header] || {};
+            const value = row[columnIndex];
+            if (rule.required && !nonblank(value)) issues.push(header + ": required");
+            if (rule.type !== "none" && nonblank(value)) {
+              const valid = rule.type === "text"
+                ? true
+                : rule.type === "number"
+                  ? isValidNumericOutput(value, header)
+                  : rule.type === "date"
+                    ? isIsoDate(value) || (state.mappings.find(mapping => mapping.targetName.trim() === header && mapping.operation === "date") && (() => {
+                      try {
+                        const mapping = state.mappings.find(item => item.targetName.trim() === header && item.operation === "date");
+                        parseDateWithFormat(value, mapping.outputDateFormat);
+                        return true;
+                      } catch {
+                        return false;
+                      }
+                    })())
+                    : true;
+              if (!valid) issues.push(header + ": invalid " + rule.type);
+            }
+            const allowedValues = (rule.allowed || "").split("|").map(item => item.trim()).filter(Boolean);
+            if (allowedValues.length && nonblank(value) && !allowedValues.includes(String(value))) {
+              issues.push(header + ": value not in allowed list");
+            }
+            if (rule.unique && nonblank(value)) {
+              if (duplicateValues[columnIndex].has(String(value).trim())) issues.push(header + ": duplicate value");
+            }
+          });
+          const record = { id: "record-" + String(index + 1).padStart(6, "0"), sourceRow: index + 2, values: row, sourceValues: state.rows[index], issues };
+          (issues.length ? state.review : state.good).push(record);
+        });
+        state.approved = false;
+        elements.approvalCheckbox.checked = false;
+        elements.approvalCheckbox.disabled = state.good.length === 0 || !state.checksConfigured;
+        elements.approveButton.disabled = true;
+        elements.downloadGood.disabled = true;
+        elements.downloadReview.disabled = state.review.length === 0;
+        elements.approvalStatus.textContent = !state.checksConfigured
+          ? "Select at least one meaningful check before approval."
+          : state.good.length
+            ? "Review the file and checks before approval."
+            : "No rows currently pass all selected checks.";
+        elements.approvalStatus.className = "approval-status";
+        renderSummary(profiles);
+        elements.goodTabCount.textContent = state.good.length.toLocaleString();
+        elements.reviewTabCount.textContent = state.review.length.toLocaleString();
+        showRows("good");
+        setStep(state.checksConfigured ? "review" : "map");
+      }
+      function showRows(group) {
+        const records = group === "good" ? state.good : state.review;
+        elements.goodTab.classList.toggle("active", group === "good");
+        elements.reviewTab.classList.toggle("active", group === "review");
+        elements.goodTab.setAttribute("aria-selected", String(group === "good"));
+        elements.reviewTab.setAttribute("aria-selected", String(group === "review"));
+        elements.previewHead.innerHTML = `<tr><th>Record</th>${state.outputHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("")}${group === "review" ? "<th>Review reason</th>" : ""}</tr>`;
+        const visibleRecords = records.slice(0, 20);
+        elements.previewBody.innerHTML = visibleRecords.map(record =>
+          `<tr><td><span class="status-badge ${group === "good" ? "status-good" : "status-review"}">${record.id}</span></td>${record.values.map(value => `<td title="${escapeHtml(value)}">${escapeHtml(value || "—")}</td>`).join("")}${group === "review" ? `<td title="${escapeHtml(record.issues.join("; "))}">${escapeHtml(record.issues.join("; "))}</td>` : ""}</tr>`
+        ).join("");
+        if (!records.length) {
+          elements.previewBody.innerHTML = `<tr><td colspan="${state.outputHeaders.length + (group === "review" ? 2 : 1)}" class="empty-state">${group === "good" ? "No rows pass the checks yet." : "No rows need review under the selected checks."}</td></tr>`;
+        }
+        elements.previewNote.textContent = records.length > 20
+          ? `Showing the first 20 of ${records.length.toLocaleString()} ${group === "good" ? "ready" : "review"} rows. Download to inspect all rows.`
+          : group === "review"
+            ? "Review rows include the original field values in the local download, plus generated record ID, source row number, and issue categories. Keep that file private."
+            : "Ready rows contain the target columns and selected deterministic transformations. No rows were deduplicated or silently removed.";
+      }
+      function setStep(active) {
+        ["upload", "map", "review", "approve"].forEach(step => {
+          const element = document.getElementById("step-" + step);
+          element.classList.toggle("active", step === active);
+          element.classList.toggle("done", (step === "upload" && active !== "upload") || (step === "map" && ["review", "approve"].includes(active)) || (step === "review" && active === "approve"));
+        });
+      }
+      function makeCsv(rows) {
+        const quote = value => {
+          const text = String(value ?? "");
+          return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+        };
+        return rows.map(row => row.map(quote).join(",")).join("\r\n") + "\r\n";
+      }
+      function download(name, rows) {
+        const blob = new Blob(["\uFEFF", makeCsv(rows)], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = name;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      function loadText(text, name) {
+        clearNotice();
+        const parsed = parseDelimited(text);
+        state.headers = parsed.headers;
+        state.rows = parsed.rows;
+        state.mappings = state.headers.map(header => ({
+          targetName: header, operation: "keep", inputDateFormat: "YYYY-MM-DD", outputDateFormat: "YYYY-MM-DD",
+          decimals: 2, decimalSeparator: ".", groupSeparator: ",", prefix: "$", suffix: "",
+          splitDelimiter: " ", secondTargetName: `${header}_part2`
+        }));
+        state.derived = [];
+        state.rules = {};
+        state.fileName = name;
+        state.delimiter = parsed.delimiter;
+        state.approved = false;
+        elements.fileMeta.textContent = `${name} · ${state.rows.length.toLocaleString()} data rows · ${state.headers.length} columns · processed locally`;
+        elements.workspace.classList.add("visible");
+        document.getElementById("file-type-pill").textContent = parsed.delimiter === "\t" ? "TAB-DELIMITED" : "DELIMITED TEXT";
+        renderMappings();
+        evaluateRows();
+        showNotice("File profiled successfully. Confirm the checks that match your requirements, then review the split.", "success");
+      }
+      function clearWorkspace() {
+        state.headers = [];
+        state.rows = [];
+        state.mappings = [];
+        state.derived = [];
+        state.rules = {};
+        state.outputHeaders = [];
+        state.outputRows = [];
+        state.good = [];
+        state.review = [];
+        state.approved = false;
+        state.checksConfigured = false;
+        state.fileName = "";
+        state.delimiter = ",";
+        elements.mappingBody.innerHTML = "";
+        elements.profileBody.innerHTML = "";
+        elements.derivedList.innerHTML = "";
+        elements.summary.innerHTML = "";
+        elements.previewHead.innerHTML = "";
+        elements.previewBody.innerHTML = "";
+        elements.goodTabCount.textContent = "0";
+        elements.reviewTabCount.textContent = "0";
+        elements.approvalStatus.textContent = "Review the file and checks before approval.";
+        elements.approvalStatus.className = "approval-status";
+        elements.workspace.classList.remove("visible");
+        elements.downloadGood.disabled = true;
+        elements.downloadReview.disabled = true;
+        elements.approvalCheckbox.checked = false;
+        elements.approvalCheckbox.disabled = true;
+        elements.approveButton.disabled = true;
+        elements.fileInput.value = "";
+        elements.fileMeta.textContent = "No file selected. Try the synthetic sample to explore the workflow.";
+        setStep("upload");
+      }
+      async function handleFile(file) {
+        if (!file) return;
+        if (state.rows.length && !window.confirm("Loading a new file will clear the current file, mappings, profiling results, review results and approval from this tab. Downloaded files and the original file will not be deleted. Continue?")) {
+          elements.fileInput.value = "";
+          return;
+        }
+        clearWorkspace();
+        if (file.size > MAX_BYTES) {
+          showNotice("This browser prototype supports files up to 20 MB. No file contents were processed.", "error");
+          return;
+        }
+        elements.fileMeta.textContent = `${file.name} · reading locally…`;
+        try {
+          const text = await file.text();
+          loadText(text, file.name);
+        } catch (error) {
+          clearWorkspace();
+          showNotice(error instanceof Error ? error.message : "The file could not be read.", "error");
+        } finally {
+          elements.fileInput.value = "";
+        }
+      }
+      function useSample() {
+        if (state.rows.length && !window.confirm("Loading the sample will clear the current file, mappings, profiling results, review results and approval from this tab. Downloaded files and the original file will not be deleted. Continue?")) {
+          return;
+        }
+        const sample = [
+          "customer_id,full_name,signup_date,age,status",
+          "C-1001,  Maya Patel  ,2024-03-14,34,active",
+          "C-1002,Jon Bell,2024-03-20,41,active",
+          "C-1003,Sam Rivera,not-a-date,29,active",
+          "C-1004,Ari Chen,2024-04-02,,inactive",
+          "C-1004,Lee Morgan,2024-04-11,52,active",
+          "C-1006,Noor Ali,2024-05-08,37,unknown"
+        ].join("\r\n");
+        clearWorkspace();
+        try {
+          loadText(sample, "synthetic_customer_sample.csv");
+          elements.profileBody.querySelector('[data-rule="required"][data-column="0"]').checked = true;
+          elements.profileBody.querySelector('[data-rule="unique"][data-column="0"]').checked = true;
+          elements.profileBody.querySelector('[data-rule="type"][data-column="2"]').value = "date";
+          elements.profileBody.querySelector('[data-rule="required"][data-column="3"]').checked = true;
+          elements.profileBody.querySelector('[data-rule="type"][data-column="3"]').value = "number";
+          elements.profileBody.querySelector('[data-rule="allowed"][data-column="4"]').value = "active|inactive";
+          evaluateRows();
+        } catch (error) {
+          clearWorkspace();
+          showNotice(error instanceof Error ? error.message : "The sample could not be loaded.", "error");
+        }
+      }
+      elements.chooseFile.addEventListener("click", event => {
+        event.stopPropagation();
+        elements.fileInput.click();
+      });
+      elements.dropzone.addEventListener("click", event => {
+        if (event.target !== elements.chooseFile) elements.fileInput.click();
+      });
+      elements.dropzone.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          elements.fileInput.click();
+        }
+      });
+      elements.fileInput.addEventListener("change", () => handleFile(elements.fileInput.files[0]));
+      elements.sampleButton.addEventListener("click", useSample);
+      elements.clearData.addEventListener("click", () => {
+        if (!state.rows.length) return;
+        const confirmed = window.confirm("Clear the uploaded data, mappings, profiling results, review results and approval from this tab? This does not delete your original file or any CSV files you already downloaded.");
+        if (!confirmed) return;
+        clearWorkspace();
+        clearNotice();
+        showNotice("Uploaded data and review state were cleared from this tab.", "success");
+      });
+      elements.dropzone.addEventListener("dragover", event => {
+        event.preventDefault();
+        elements.dropzone.classList.add("dragging");
+      });
+      elements.dropzone.addEventListener("dragleave", () => elements.dropzone.classList.remove("dragging"));
+      elements.dropzone.addEventListener("drop", event => {
+        event.preventDefault();
+        elements.dropzone.classList.remove("dragging");
+        handleFile(event.dataTransfer.files[0]);
+      });
+      document.getElementById("recheck-button").addEventListener("click", evaluateRows);
+      elements.profileBody.addEventListener("change", evaluateRows);
+      elements.mappingBody.addEventListener("change", event => {
+        const control = event.target;
+        const index = Number(control.dataset.source);
+        const mapping = state.mappings[index];
+        if (!mapping) return;
+        if (control.dataset.map) {
+          if (control.dataset.map === "targetName") {
+            const previousName = control.dataset.previousValue;
+            if (state.rules[previousName]) state.rules[control.value.trim()] = state.rules[previousName];
+            control.dataset.previousValue = control.value.trim();
+          }
+          mapping[control.dataset.map] = control.value;
+          if (control.dataset.map === "operation") {
+            elements.mappingBody.querySelector(`[data-options="${index}"]`).innerHTML = formatOptions(mapping, index);
+          }
+        } else if (control.dataset.mapOption) {
+          mapping[control.dataset.mapOption] = control.value;
+        }
+        evaluateRows();
+      });
+      elements.mappingBody.addEventListener("input", event => {
+        const control = event.target;
+        if (!control.dataset.map && !control.dataset.mapOption) return;
+        if (control.dataset.map === "targetName") return;
+        syncMappingsFromDom();
+        evaluateRows();
+      });
+      document.getElementById("combine-add").addEventListener("click", () => {
+        const targetName = elements.combineName.value.trim();
+        if (!targetName) {
+          showNotice("Enter a target name for the combined field.", "error");
+          elements.combineName.focus();
+          return;
+        }
+        state.derived.push({
+          first: Number(elements.combineFirst.value),
+          second: Number(elements.combineSecond.value),
+          targetName,
+          separator: elements.combineSeparator.value
+        });
+        elements.combineName.value = "";
+        renderDerived();
+        evaluateRows();
+      });
+      elements.derivedList.addEventListener("click", event => {
+        const button = event.target.closest("[data-remove-derived]");
+        if (!button) return;
+        state.derived.splice(Number(button.dataset.removeDerived), 1);
+        renderDerived();
+        evaluateRows();
+      });
+      elements.goodTab.addEventListener("click", () => showRows("good"));
+      elements.reviewTab.addEventListener("click", () => showRows("review"));
+      elements.approvalCheckbox.addEventListener("change", () => {
+        elements.approveButton.disabled = !elements.approvalCheckbox.checked || state.good.length === 0;
+      });
+      elements.approveButton.addEventListener("click", () => {
+        if (!elements.approvalCheckbox.checked || !state.good.length || !state.checksConfigured) return;
+        state.approved = true;
+        elements.downloadGood.disabled = false;
+        elements.approvalStatus.textContent = "Approved in this browser session. You may download the ready CSV.";
+        elements.approvalStatus.className = "approval-status approved";
+        setStep("approve");
+      });
+      elements.downloadGood.addEventListener("click", () => {
+        if (!state.approved) return;
+        const rows = [state.outputHeaders, ...state.good.map(record => record.values)];
+        download("data_migration_helper_approved_ready_data.csv", rows);
+      });
+      elements.downloadReview.addEventListener("click", () => {
+        if (!state.rows.length) return;
+        const rows = [["generated_record_id", "source_row", "issue_categories", ...state.headers.map(header => `source_${header}`), ...state.outputHeaders.map(header => `target_${header}`)]];
+        state.review.forEach(record => rows.push([record.id, record.sourceRow, record.issues.join(" | "), ...record.sourceValues, ...record.values]));
+        download("data_migration_helper_rows_needing_review.csv", rows);
+      });
+      elements.downloadReview.disabled = true;
+      window.addEventListener("beforeunload", () => {
+        elements.fileInput.value = "";
+      });
+    })();
+  </script>
+</body>
+</html>
